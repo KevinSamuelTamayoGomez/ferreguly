@@ -1,0 +1,62 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Mi Perfil - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-person-circle"></i> Mi Perfil</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Información Personal</h5>
+                        <hr>
+                        <p><strong>Nombre:</strong> {{ empleado.nombre }} {{ empleado.apellido }}</p>
+                        <p><strong>Cargo:</strong> {{ empleado.cargo }}</p>
+                        <p><strong>Teléfono:</strong> {{ empleado.telefono }}</p>
+                        <p><strong>Email:</strong> {{ empleado.email|default:"No especificado" }}</p>
+                        <p><strong>Usuario:</strong> {{ empleado.usuario }}</p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>Información del Sistema</h5>
+                        <hr>
+                        <p><strong>Rol:</strong> 
+                            <span class="badge bg-primary">{{ empleado.id_rol.nombre }}</span>
+                        </p>
+                        <p><strong>Estado:</strong> 
+                            {% if empleado.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Fecha de Registro:</strong> {{ empleado.fecha_registro|date:"d/m/Y" }}</p>
+                        <p><strong>Descripción del Rol:</strong> {{ empleado.id_rol.descripcion|default:"Sin descripción" }}</p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Información de Sesión</h6>
+                    <p class="mb-1"><strong>Sesión actual:</strong> {{ request.session.empleado_nombre }}</p>
+                    <p class="mb-0"><strong>Rol activo:</strong> {{ request.session.empleado_rol }}</p>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'ferreteria:index' %}" class="btn btn-primary">
+                        <i class="bi bi-house"></i> Volver al Inicio
+                    </a>
+                    <a href="{% url 'ferreteria:logout' %}" class="btn btn-outline-danger">
+                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

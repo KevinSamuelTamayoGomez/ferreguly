@@ -1,0 +1,150 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Detalle Movimiento #{{ movimiento.id }} - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-eye"></i> Detalle del Movimiento #{{ movimiento.id }}</h1>
+    <a href="{% url 'ferreteria:movimiento_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a Movimientos
+    </a>
+</div>
+
+<div class="row">
+    <!-- Información del movimiento -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Información del Movimiento</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>ID:</strong> #{{ movimiento.id }}</p>
+                <p><strong>Fecha:</strong> {{ movimiento.fecha|date:"d/m/Y H:i" }}</p>
+                <p>
+                    <strong>Tipo:</strong>
+                    {% if movimiento.tipo == 'entrada' %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-arrow-down"></i> {{ movimiento.get_tipo_display }}
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger">
+                            <i class="bi bi-arrow-up"></i> {{ movimiento.get_tipo_display }}
+                        </span>
+                    {% endif %}
+                </p>
+                <p>
+                    <strong>Cantidad:</strong> 
+                    <span class="fs-4 {% if movimiento.tipo == 'entrada' %}text-success{% else %}text-danger{% endif %}">
+                        {% if movimiento.tipo == 'entrada' %}+{% else %}-{% endif %}{{ movimiento.cantidad }}
+                    </span>
+                </p>
+                <p><strong>Descripción:</strong> {{ movimiento.descripcion|default:"Sin descripción" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información del artículo -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-box-seam"></i> Artículo Afectado</h5>
+            </div>
+            <div class="card-body">
+                {% if movimiento.id_articulo.imagen_url %}
+                    <div class="text-center mb-3">
+                        <img src="{{ movimiento.id_articulo.imagen_url.url }}" alt="{{ movimiento.id_articulo.nombre }}" 
+                             class="img-thumbnail" style="max-width: 150px; max-height: 150px; object-fit: cover;">
+                    </div>
+                {% endif %}
+                
+                <p><strong>Nombre:</strong> {{ movimiento.id_articulo.nombre }}</p>
+                <p><strong>Código SKU:</strong> {{ movimiento.id_articulo.codigo_sku|default:"Sin código" }}</p>
+                <p><strong>Categoría:</strong> {{ movimiento.id_articulo.id_categoria.nombre }}</p>
+                <p><strong>Proveedor:</strong> {{ movimiento.id_articulo.id_proveedor.nombre }}</p>
+                <p><strong>Precio:</strong> ${{ movimiento.id_articulo.precio }}</p>
+                <p>
+                    <strong>Stock Actual:</strong> 
+                    <span class="badge {% if movimiento.id_articulo.stock > 10 %}bg-success{% elif movimiento.id_articulo.stock > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ movimiento.id_articulo.stock }} unidades
+                    </span>
+                </p>
+                
+                <div class="mt-3">
+                    <a href="{% url 'ferreteria:articulo_movimientos' movimiento.id_articulo.id %}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-clock-history"></i> Ver Historial del Artículo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información del empleado -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-person-badge"></i> Empleado Responsable</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Nombre:</strong> {{ movimiento.id_empleado.nombre }} {{ movimiento.id_empleado.apellido }}</p>
+                <p><strong>Cargo:</strong> {{ movimiento.id_empleado.cargo }}</p>
+                <p><strong>Email:</strong> {{ movimiento.id_empleado.email|default:"No especificado" }}</p>
+                <p><strong>Teléfono:</strong> {{ movimiento.id_empleado.telefono }}</p>
+                <p><strong>Rol:</strong> {{ movimiento.id_empleado.id_rol.nombre }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Impacto del movimiento -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-graph-up-arrow"></i> Impacto del Movimiento</h5>
+            </div>
+            <div class="card-body">
+                {% if movimiento.tipo == 'entrada' %}
+                    <div class="alert alert-success">
+                        <h6><i class="bi bi-plus-circle"></i> Entrada de Inventario</h6>
+                        <p class="mb-1">✅ Se agregaron <strong>{{ movimiento.cantidad }}</strong> unidades al stock</p>
+                        <p class="mb-0">✅ Inventario aumentó en el sistema</p>
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger">
+                        <h6><i class="bi bi-dash-circle"></i> Salida de Inventario</h6>
+                        <p class="mb-1">❌ Se redujeron <strong>{{ movimiento.cantidad }}</strong> unidades del stock</p>
+                        <p class="mb-0">❌ Inventario disminuyó en el sistema</p>
+                    </div>
+                {% endif %}
+                
+                <hr>
+                <h6>Información Adicional:</h6>
+                <ul class="mb-0">
+                    <li><strong>Fecha del movimiento:</strong> {{ movimiento.fecha|date:"d/m/Y H:i" }}</li>
+                    <li><strong>Stock actual:</strong> {{ movimiento.id_articulo.stock }} unidades</li>
+                    {% if movimiento.id_articulo.stock < 5 %}
+                        <li class="text-warning"><strong>⚠️ Alerta:</strong> Stock bajo</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botones de acción -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+            <a href="{% url 'ferreteria:articulo_movimientos' movimiento.id_articulo.id %}" class="btn btn-outline-info">
+                <i class="bi bi-clock-history"></i> Historial del Artículo
+            </a>
+            <a href="{% url 'ferreteria:movimiento_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver a la Lista
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

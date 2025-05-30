@@ -1,0 +1,97 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Pedido Confirmado - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                </div>
+                
+                <h2 class="text-success mb-3">¡Pedido Confirmado!</h2>
+                <p class="lead">Tu pedido ha sido procesado exitosamente</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5><i class="bi bi-receipt"></i> Detalles del Pedido</h5>
+                                <hr>
+                                <p><strong>Número de Pedido:</strong> #{{ pedido.id }}</p>
+                                <p><strong>Fecha:</strong> {{ pedido.fecha|date:"d/m/Y H:i" }}</p>
+                                <p><strong>Estado:</strong> 
+                                    <span class="badge bg-warning">{{ pedido.get_estado_display }}</span>
+                                </p>
+                                <p><strong>Total:</strong> ${{ pedido.total }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5><i class="bi bi-person"></i> Datos del Cliente</h5>
+                                <hr>
+                                <p><strong>Nombre:</strong> {{ cliente.nombre }} {{ cliente.apellido }}</p>
+                                <p><strong>Teléfono:</strong> {{ cliente.telefono }}</p>
+                                <p><strong>Email:</strong> {{ cliente.email|default:"No especificado" }}</p>
+                                <p><strong>Dirección:</strong> {{ pedido.direccion_envio }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-4">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>¿Qué sigue?</strong><br>
+                    Nos pondremos en contacto contigo para coordinar la entrega de tu pedido.
+                    El estado de tu pedido será actualizado conforme avance el proceso.
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{% url 'ferreteria:pedido_detail' pedido.id %}" class="btn btn-success me-2">
+                        <i class="bi bi-receipt-cutoff"></i> Ver Mi Pedido
+                    </a>
+                    <a href="{% url 'ferreteria:pedido_list' %}" class="btn btn-info me-2">
+                        <i class="bi bi-list-ul"></i> Ver Todos los Pedidos
+                    </a>
+                    <a href="{% url 'ferreteria:catalogo' %}" class="btn btn-primary me-2">
+                        <i class="bi bi-shop"></i> Seguir Comprando
+                    </a>
+                    <a href="{% url 'ferreteria:index' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-house"></i> Volver al Inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Información adicional -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="bi bi-clock text-primary" style="font-size: 2rem;"></i>
+                    <h6 class="mt-2">Procesamiento</h6>
+                    <p class="small text-muted">24-48 horas</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="bi bi-truck text-primary" style="font-size: 2rem;"></i>
+                    <h6 class="mt-2">Entrega</h6>
+                    <p class="small text-muted">2-5 días hábiles</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="bi bi-headset text-primary" style="font-size: 2rem;"></i>
+                    <h6 class="mt-2">Soporte</h6>
+                    <p class="small text-muted">Lun-Vie 9am-6pm</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

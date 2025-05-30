@@ -1,0 +1,181 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Carrito de Compras - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-cart3"></i> Carrito de Compras</h1>
+        <hr>
+    </div>
+</div>
+
+{% if items %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Productos en tu carrito</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Precio</th>
+                                <th>Cantidad</th>
+                                <th>Subtotal</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.id_articulo.imagen_url %}
+                                            <img src="{{ item.id_articulo.imagen_url.url }}" alt="{{ item.id_articulo.nombre }}" 
+                                                 class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light me-3 d-flex align-items-center justify-content-center" 
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="bi bi-image text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-0">{{ item.id_articulo.nombre }}</h6>
+                                            <small class="text-muted">{{ item.id_articulo.id_categoria.nombre }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>${{ item.id_articulo.precio }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'ferreteria:actualizar_carrito' item.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <div class="input-group" style="width: 120px;">
+                                            <input type="number" name="cantidad" value="{{ item.cantidad }}" 
+                                                   min="1" max="{{ item.id_articulo.stock }}" class="form-control form-control-sm">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-check"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </td>
+                                <td><strong>${{ item.subtotal }}</strong></td>
+                                <td>
+                                    <a href="{% url 'ferreteria:eliminar_carrito' item.id %}" 
+                                       class="btn btn-outline-danger btn-sm"
+                                       onclick="return confirm('¿Estás seguro de eliminar este producto?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Resumen del Pedido</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span>${{ total }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Envío:</span>
+                    <span>Gratis</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-3">
+                    <strong>Total:</strong>
+                    <strong>${{ total }}</strong>
+                </div>
+                
+                <form method="post" action="{% url 'ferreteria:colocar_pedido' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Método de Pago -->
+                    <div class="mb-3">
+                        <h6><i class="bi bi-credit-card"></i> Método de Pago</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="metodo_pago" value="efectivo" id="efectivo" checked>
+                            <label class="form-check-label" for="efectivo">
+                                <i class="bi bi-cash"></i> Efectivo
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="metodo_pago" value="tarjeta_debito" id="debito">
+                            <label class="form-check-label" for="debito">
+                                <i class="bi bi-credit-card"></i> Tarjeta de Débito
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="metodo_pago" value="tarjeta_credito" id="credito">
+                            <label class="form-check-label" for="credito">
+                                <i class="bi bi-credit-card-2-front"></i> Tarjeta de Crédito
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="metodo_pago" value="transferencia" id="transferencia">
+                            <label class="form-check-label" for="transferencia">
+                                <i class="bi bi-bank"></i> Transferencia Bancaria
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100 mb-2">
+                        <i class="bi bi-check-circle"></i> Colocar Pedido
+                    </button>
+                </form>
+                
+                <a href="{% url 'ferreteria:catalogo' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-arrow-left"></i> Seguir Comprando
+                </a>
+            </div>
+        </div>
+        
+        <!-- Información adicional -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6><i class="bi bi-info-circle"></i> Información</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="bi bi-truck"></i> Envío gratis en compras mayores a $500</li>
+                    <li><i class="bi bi-shield-check"></i> Garantía en todos nuestros productos</li>
+                    <li><i class="bi bi-credit-card"></i> Múltiples formas de pago</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Carrito vacío -->
+<div class="row">
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="bi bi-cart-x" style="font-size: 4rem; color: #6c757d;"></i>
+            <h3 class="mt-3">Tu carrito está vacío</h3>
+            <p class="text-muted">Agrega algunos productos a tu carrito para continuar</p>
+            
+            <!-- Botones de acción -->
+            <div class="mt-4">
+                <a href="{% url 'ferreteria:catalogo' %}" class="btn btn-primary me-2">
+                    <i class="bi bi-shop"></i> Ir al Catálogo
+                </a>
+                <a href="{% url 'ferreteria:pedido_list' %}" class="btn btn-outline-info">
+                    <i class="bi bi-receipt"></i> Ver Mis Pedidos
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

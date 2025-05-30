@@ -1,0 +1,95 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}{{ titulo }} - Ferreguly{% endblock %}
+
+{% block content %}
+<!-- Información del empleado que está registrando -->
+{% if request.session.empleado_id %}
+<div class="alert alert-info mb-4">
+    <i class="bi bi-person-badge"></i> 
+    <strong>Registrando como:</strong> {{ request.session.empleado_nombre }} 
+    ({{ request.session.empleado_rol }})
+</div>
+{% endif %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-arrow-repeat"></i> {{ titulo }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_id_articulo" class="form-label">Artículo *</label>
+                                {{ form.id_articulo }}
+                                {% if form.id_articulo.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.id_articulo.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_tipo" class="form-label">Tipo de Movimiento *</label>
+                                {{ form.tipo }}
+                                {% if form.tipo.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.tipo.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_cantidad" class="form-label">Cantidad *</label>
+                        {{ form.cantidad }}
+                        {% if form.cantidad.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.cantidad.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Ingresa la cantidad de unidades del movimiento</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_descripcion" class="form-label">Descripción/Motivo</label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.descripcion.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Explica el motivo del movimiento (ej: "Compra a proveedor", "Venta", "Ajuste de inventario", etc.)</div>
+                    </div>
+                    
+                    <!-- Información adicional -->
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Información</h6>
+                        <ul class="mb-0">
+                            <li><strong>Entrada:</strong> Aumenta el stock del artículo (compras, devoluciones, ajustes positivos)</li>
+                            <li><strong>Salida:</strong> Disminuye el stock del artículo (ventas, devoluciones a proveedor, merma, ajustes negativos)</li>
+                            <li>El stock del artículo se actualizará automáticamente</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'ferreteria:movimiento_list' %}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Registrar Movimiento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

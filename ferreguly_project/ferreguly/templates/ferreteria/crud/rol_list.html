@@ -1,0 +1,63 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Roles - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-person-badge"></i> Gestión de Roles</h1>
+    <a href="{% url 'ferreteria:rol_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus"></i> Nuevo Rol
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if roles %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rol in roles %}
+                    <tr>
+                        <td>{{ rol.id }}</td>
+                        <td><strong>{{ rol.nombre }}</strong></td>
+                        <td>{{ rol.descripcion|default:"Sin descripción" }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'ferreteria:rol_update' rol.pk %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                <form method="post" action="{% url 'ferreteria:rol_delete' rol.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                            onclick="return confirm('¿Estás seguro de eliminar este rol?')">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
+            <h4 class="mt-3">No hay roles registrados</h4>
+            <p class="text-muted">Crea tu primer rol para comenzar</p>
+            <a href="{% url 'ferreteria:rol_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> Crear Rol
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

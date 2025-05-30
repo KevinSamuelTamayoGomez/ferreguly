@@ -1,0 +1,77 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Cancelar Pedido #{{ pedido.id }} - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="bi bi-exclamation-triangle"></i> Confirmar Cancelación del Pedido #{{ pedido.id }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-info-circle"></i> ¿Estás seguro de cancelar este pedido?</h6>
+                    <p class="mb-0">Esta acción:</p>
+                    <ul class="mb-0">
+                        <li>Cambiará el estado del pedido a "Cancelado"</li>
+                        <li>Restaurará automáticamente el stock de todos los productos</li>
+                        <li>Registrará movimientos de inventario por la reversión</li>
+                        <li><strong>No se puede deshacer</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Información del pedido -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Información del Pedido:</h6>
+                        <p><strong>Número:</strong> #{{ pedido.id }}</p>
+                        <p><strong>Cliente:</strong> {{ pedido.id_cliente.nombre }} {{ pedido.id_cliente.apellido }}</p>
+                        <p><strong>Fecha:</strong> {{ pedido.fecha|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Total:</strong> ${{ pedido.total }}</p>
+                        <p><strong>Estado actual:</strong> 
+                            <span class="badge bg-warning text-dark">{{ pedido.get_estado_display }}</span>
+                        </p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Productos que se restaurarán:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for detalle in detalles %}
+                                    <tr>
+                                        <td>{{ detalle.id_articulo.nombre }}</td>
+                                        <td><span class="badge bg-success">+{{ detalle.cantidad }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <hr>
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'ferreteria:pedido_detail' pedido.pk %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> No Cancelar
+                    </a>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Sí, Cancelar Pedido
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

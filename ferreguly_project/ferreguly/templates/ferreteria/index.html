@@ -1,0 +1,86 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Ferreguly - Ferretería de Confianza{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="jumbotron bg-primary text-white text-center py-5 mb-4 rounded">
+    <div class="container">
+        <h1 class="display-4"><i class="bi bi-tools"></i> Bienvenido a Ferreguly</h1>
+        <p class="lead">Tu ferretería de confianza con los mejores productos y precios</p>
+        <a class="btn btn-light btn-lg" href="{% url 'ferreteria:catalogo' %}" role="button">
+            Ver Catálogo <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Productos Destacados -->
+<div class="row">
+    <div class="col-12">
+        <h2 class="text-center mb-4">Productos Destacados</h2>
+    </div>
+</div>
+
+<div class="row">
+    {% for articulo in articulos_destacados %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            {% if articulo.imagen_url %}
+                <img src="{{ articulo.imagen_url.url }}" class="card-img-top" alt="{{ articulo.nombre }}" style="height: 200px; object-fit: cover;">
+            {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                </div>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ articulo.nombre }}</h5>
+                <p class="card-text">{{ articulo.descripcion|truncatewords:15 }}</p>
+                <div class="mt-auto">
+                    <p class="card-text"><strong>Precio: ${{ articulo.precio }}</strong></p>
+                    <p class="card-text"><small class="text-muted">Stock: {{ articulo.stock }} unidades</small></p>
+                    <form method="post" action="{% url 'ferreteria:agregar_carrito' articulo.id %}">
+                        {% csrf_token %}
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" name="cantidad" value="1" min="1" max="{{ articulo.stock }}" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="bi bi-cart-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <h4>No hay productos disponibles</h4>
+            <p>Próximamente agregaremos productos a nuestro catálogo.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Características -->
+<div class="row mt-5">
+    <div class="col-md-4 text-center">
+        <i class="bi bi-truck" style="font-size: 3rem; color: #0d6efd;"></i>
+        <h4>Entrega Rápida</h4>
+        <p>Entregamos tus productos en tiempo récord</p>
+    </div>
+    <div class="col-md-4 text-center">
+        <i class="bi bi-shield-check" style="font-size: 3rem; color: #0d6efd;"></i>
+        <h4>Calidad Garantizada</h4>
+        <p>Productos de la más alta calidad</p>
+    </div>
+    <div class="col-md-4 text-center">
+        <i class="bi bi-headset" style="font-size: 3rem; color: #0d6efd;"></i>
+        <h4>Atención al Cliente</h4>
+        <p>Servicio personalizado y profesional</p>
+    </div>
+</div>
+{% endblock %}

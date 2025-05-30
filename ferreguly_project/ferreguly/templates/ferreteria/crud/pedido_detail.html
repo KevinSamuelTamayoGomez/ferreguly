@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Pedido #{{ object.id }} - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-clipboard-list"></i> Pedido #{{ object.id }}</h2>
+            <div>
+                <span class="badge status-{{ object.estado }} fs-6">{{ object.get_estado_display }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Información del Pedido -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Información del Pedido</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Cliente:</strong> {{ object.id_cliente }}</p>
+                        <p><strong>Empleado:</strong> {{ object.id_empleado }}</p>
+                        <p><strong>Fecha:</strong> {{ object.fecha|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Estado:</strong> 
+                            <span class="badge status-{{ object.estado }}">{{ object.get_estado_display }}</span>
+                        </p>
+                        <p><strong>Método de Pago:</strong> {{ object.metodo_pago|default:"No especificado" }}</p>
+                        <p><strong>Dirección de Envío:</strong> {{ object.direccion_envio|default:"No especificada" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalles del Pedido -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Productos del Pedido</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th>Precio Unitario</th>
+                                <th>Cantidad</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for detalle in object.detalles.all %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if detalle.id_articulo.imagen_url %}
+                                                <img src="{{ detalle.id_articulo.imagen_url.url }}" 
+                                                     alt="{{ detalle.id_articulo.nombre }}" 
+                                                     class="me-3" 
+                                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="me-3 bg-light d-flex align-items-center justify-content-center" 
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ detalle.id_articulo.nombre }}</strong><br>
+                                                <small class="text-muted">{{ detalle.id_articulo.id_categoria.nombre }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">${{ detalle.precio_unitario }}</td>
+                                    <td class="align-middle">{{ detalle.cantidad }}</td>
+                                    <td class="align-middle"><strong>${{ detalle.get_subtotal }}</strong></td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4">
+                                        <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted">No hay productos en este pedido</p>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Resumen del Pedido -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-calculator"></i> Resumen</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span>${{ object.total }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Impuestos:</span>
+                    <span>$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Envío:</span>
+                    <span>Gratis</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-3">
+                    <strong>Total:</strong>
+                    <strong class="text-primary fs-4">${{ object.total }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs"></i> Acciones</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'pedido_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a Pedidos
+                    </a>
+                    {% if object.estado == 'pendiente' %}
+                        <a href="{% url 'pedido_update' object.pk %}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Editar Pedido
+                        </a>
+                    {% endif %}
+                    <button onclick="window.print()" class="btn btn-info">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Cliente -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-user"></i> Cliente</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>{{ object.id_cliente.nombre }} {{ object.id_cliente.apellido }}</strong></p>
+                <p><small class="text-muted">
+                    <i class="fas fa-phone"></i> {{ object.id_cliente.telefono }}<br>
+                    {% if object.id_cliente.email %}
+                        <i class="fas fa-envelope"></i> {{ object.id_cliente.email }}<br>
+                    {% endif %}
+                    <i class="fas fa-map-marker-alt"></i> {{ object.id_cliente.direccion }}
+                </small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header, nav, footer {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}
