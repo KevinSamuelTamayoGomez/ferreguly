@@ -1,5 +1,5 @@
 from django.contrib.auth.hashers import make_password, check_password
-from .decorators import login_required, role_required, admin_required
+from .decorators import login_required, role_required, admin_required, cliente_login_required, any_login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import transaction
@@ -34,6 +34,7 @@ def catalogo(request):
     }
     return render(request, 'ferreteria/catalogo.html', context)
 
+@any_login_required
 def agregar_carrito(request, articulo_id):
     articulo = get_object_or_404(Articulo, id=articulo_id)
     
@@ -50,16 +51,22 @@ def agregar_carrito(request, articulo_id):
                 messages.error(request, f'Stock insuficiente para {articulo.nombre}. Disponible: {articulo.stock} unidades.')
                 return redirect('ferreteria:catalogo')
             
-            cliente = Cliente.objects.first()
-            if not cliente:
-                messages.error(request, 'No hay clientes registrados.')
-                return redirect('ferreteria:catalogo')
-            
-            carrito, created = Carrito.objects.get_or_create(
-                id_cliente=cliente,
-                estado='activo',
-                defaults={'id_cliente': cliente}
-            )
+            # Determinar el propietario del carrito
+            if hasattr(request, 'cliente'):
+                carrito, created = Carrito.objects.get_or_create(
+                    id_cliente=request.cliente,
+                    estado='activo',
+                    defaults={'id_cliente': request.cliente}
+                )
+            elif hasattr(request, 'empleado'):
+                carrito, created = Carrito.objects.get_or_create(
+                    id_empleado=request.empleado,
+                    estado='activo',
+                    defaults={'id_empleado': request.empleado}
+                )
+            else:
+                messages.error(request, 'Error en la sesión. Inicia sesión nuevamente.')
+                return redirect('ferreteria:login_universal')
             
             carrito_item, created = CarritoItem.objects.get_or_create(
                 id_carrito=carrito,
@@ -91,14 +98,17 @@ def agregar_carrito(request, articulo_id):
     
     return redirect('ferreteria:catalogo')
 
+@any_login_required
 def ver_carrito(request):
-    cliente = Cliente.objects.first()
-    if not cliente:
-        messages.error(request, 'No hay clientes registrados.')
-        return redirect('ferreteria:catalogo')
-    
     try:
-        carrito = Carrito.objects.get(id_cliente=cliente, estado='activo')
+        if hasattr(request, 'cliente'):
+            carrito = Carrito.objects.get(id_cliente=request.cliente, estado='activo')
+        elif hasattr(request, 'empleado'):
+            carrito = Carrito.objects.get(id_empleado=request.empleado, estado='activo')
+        else:
+            messages.error(request, 'Error en la sesión.')
+            return redirect('ferreteria:login_universal')
+            
         items = CarritoItem.objects.filter(id_carrito=carrito)
         total = carrito.get_total()
     except Carrito.DoesNotExist:
@@ -113,48 +123,63 @@ def ver_carrito(request):
     }
     return render(request, 'ferreteria/carrito.html', context)
 
+@any_login_required
 def actualizar_carrito(request, item_id):
     item = get_object_or_404(CarritoItem, id=item_id)
+    
+    # Verificar que el item pertenece al usuario actual
+    if hasattr(request, 'cliente') and item.id_carrito.id_cliente != request.cliente:
+        messages.error(request, 'No tienes permisos para modificar este artículo.')
+        return redirect('ferreteria:ver_carrito')
+    elif hasattr(request, 'empleado') and item.id_carrito.id_empleado != request.empleado:
+        messages.error(request, 'No tienes permisos para modificar este artículo.')
+        return redirect('ferreteria:ver_carrito')
     
     if request.method == 'POST':
         form = ActualizarCarritoForm(request.POST)
         if form.is_valid():
             nueva_cantidad = form.cleaned_data['cantidad']
-            item.cantidad = nueva_cantidad
-            item.save()
-            messages.success(request, 'Cantidad actualizada correctamente.')
+            if item.id_articulo.stock >= nueva_cantidad:
+                item.cantidad = nueva_cantidad
+                item.save()
+                messages.success(request, 'Cantidad actualizada correctamente.')
+            else:
+                messages.error(request, f'Stock insuficiente. Disponible: {item.id_articulo.stock}')
     
     return redirect('ferreteria:ver_carrito')
 
+@any_login_required
 def eliminar_carrito(request, item_id):
     item = get_object_or_404(CarritoItem, id=item_id)
+    
+    # Verificar que el item pertenece al usuario actual
+    if hasattr(request, 'cliente') and item.id_carrito.id_cliente != request.cliente:
+        messages.error(request, 'No tienes permisos para eliminar este artículo.')
+        return redirect('ferreteria:ver_carrito')
+    elif hasattr(request, 'empleado') and item.id_carrito.id_empleado != request.empleado:
+        messages.error(request, 'No tienes permisos para eliminar este artículo.')
+        return redirect('ferreteria:ver_carrito')
+    
     articulo_nombre = item.id_articulo.nombre
     item.delete()
     messages.success(request, f'Se eliminó {articulo_nombre} del carrito.')
     return redirect('ferreteria:ver_carrito')
 
+@any_login_required
 def colocar_pedido(request):
-    cliente = Cliente.objects.first()
-    if not cliente:
-        messages.error(request, 'No hay clientes registrados.')
-        return redirect('ferreteria:catalogo')
-    
-    empleado = None
-    if request.session.get('empleado_id'):
-        try:
-            empleado = Empleado.objects.get(id=request.session['empleado_id'], activo=True)
-        except Empleado.DoesNotExist:
-            pass
-    
-    if not empleado:
-        empleado = Empleado.objects.filter(activo=True).first()
-        
-    if not empleado:
-        messages.error(request, 'No hay empleados disponibles para procesar el pedido.')
-        return redirect('ferreteria:ver_carrito')
-    
     try:
-        carrito = Carrito.objects.get(id_cliente=cliente, estado='activo')
+        if hasattr(request, 'cliente'):
+            carrito = Carrito.objects.get(id_cliente=request.cliente, estado='activo')
+            cliente = request.cliente
+            comprador_empleado = None
+        elif hasattr(request, 'empleado'):
+            carrito = Carrito.objects.get(id_empleado=request.empleado, estado='activo')
+            cliente = None
+            comprador_empleado = request.empleado
+        else:
+            messages.error(request, 'Error en la sesión.')
+            return redirect('ferreteria:login_universal')
+            
         items = CarritoItem.objects.filter(id_carrito=carrito)
         
         if not items.exists():
@@ -173,15 +198,35 @@ def colocar_pedido(request):
             }
             metodo_pago_texto = metodos_pago_map.get(metodo_pago, 'Efectivo')
             
+            # Obtener empleado para procesar el pedido
+            empleado_procesador = None
+            if hasattr(request, 'empleado'):
+                empleado_procesador = request.empleado
+            else:
+                empleado_procesador = Empleado.objects.filter(activo=True).first()
+            
+            if not empleado_procesador:
+                messages.error(request, 'No hay empleados disponibles para procesar el pedido.')
+                return redirect('ferreteria:ver_carrito')
+            
             with transaction.atomic():
                 total = carrito.get_total()
+                
+                # Determinar dirección de envío
+                direccion_envio = ''
+                if cliente:
+                    direccion_envio = cliente.direccion
+                elif comprador_empleado:
+                    direccion_envio = request.POST.get('direccion_envio', 'Oficina principal')
+                
                 pedido = Pedido.objects.create(
                     id_cliente=cliente,
-                    id_empleado=empleado,
+                    id_empleado=empleado_procesador,
+                    id_comprador_empleado=comprador_empleado,
                     total=total,
                     estado='pendiente',
                     metodo_pago=metodo_pago_texto,
-                    direccion_envio=cliente.direccion
+                    direccion_envio=direccion_envio
                 )
                 
                 for item in items:
@@ -198,7 +243,7 @@ def colocar_pedido(request):
                     
                     MovimientoInventario.objects.create(
                         id_articulo=articulo,
-                        id_empleado=empleado,
+                        id_empleado=empleado_procesador,
                         tipo='salida',
                         cantidad=item.cantidad,
                         descripcion=f'Venta automática - Pedido #{pedido.id}'
@@ -206,7 +251,7 @@ def colocar_pedido(request):
                 
                 Pago.objects.create(
                     id_pedido=pedido,
-                    id_empleado=empleado,
+                    id_empleado=empleado_procesador,
                     monto=total,
                     metodo_pago=metodo_pago_texto
                 )
@@ -219,12 +264,139 @@ def colocar_pedido(request):
                 return render(request, 'ferreteria/pedido_confirmacion.html', {
                     'pedido': pedido,
                     'cliente': cliente,
+                    'comprador_empleado': comprador_empleado,
                     'pedido_recien_creado': True
                 })
     
     except Carrito.DoesNotExist:
         messages.error(request, 'No tienes un carrito activo.')
         return redirect('ferreteria:catalogo')
+
+def login_universal(request):
+    """Vista unificada de login que detecta si es cliente o empleado"""
+    if request.session.get('cliente_id') or request.session.get('empleado_id'):
+        return redirect('ferreteria:index')
+    
+    if request.method == 'POST':
+        form = LoginUniversalForm(request.POST)
+        if form.is_valid():
+            usuario = form.cleaned_data['usuario']
+            contraseña = form.cleaned_data['contraseña']
+            
+            # Intentar login como cliente primero
+            try:
+                cliente = Cliente.objects.get(usuario=usuario, activo=True)
+                
+                if not cliente.contraseña.startswith('pbkdf2_'):
+                    if cliente.contraseña == contraseña:
+                        cliente.contraseña = make_password(contraseña)
+                        cliente.save()
+                        request.session['cliente_id'] = cliente.id
+                        request.session['cliente_nombre'] = f"{cliente.nombre} {cliente.apellido}"
+                        messages.success(request, f'¡Bienvenido, {cliente.nombre}!')
+                        return redirect('ferreteria:index')
+                    else:
+                        pass  # Continuar con empleado
+                else:
+                    if check_password(contraseña, cliente.contraseña):
+                        request.session['cliente_id'] = cliente.id
+                        request.session['cliente_nombre'] = f"{cliente.nombre} {cliente.apellido}"
+                        messages.success(request, f'¡Bienvenido, {cliente.nombre}!')
+                        return redirect('ferreteria:index')
+                    else:
+                        pass  # Continuar con empleado
+                        
+            except Cliente.DoesNotExist:
+                pass  # Continuar con empleado
+            
+            # Intentar login como empleado
+            try:
+                empleado = Empleado.objects.get(usuario=usuario, activo=True)
+                
+                if not empleado.contraseña.startswith('pbkdf2_'):
+                    if empleado.contraseña == contraseña:
+                        empleado.contraseña = make_password(contraseña)
+                        empleado.save()
+                        request.session['empleado_id'] = empleado.id
+                        request.session['empleado_nombre'] = f"{empleado.nombre} {empleado.apellido}"
+                        request.session['empleado_rol'] = empleado.id_rol.nombre
+                        messages.success(request, f'Bienvenido, {empleado.nombre}!')
+                        return redirect('ferreteria:index')
+                    else:
+                        messages.error(request, 'Usuario o contraseña incorrectos.')
+                else:
+                    if check_password(contraseña, empleado.contraseña):
+                        request.session['empleado_id'] = empleado.id
+                        request.session['empleado_nombre'] = f"{empleado.nombre} {empleado.apellido}"
+                        request.session['empleado_rol'] = empleado.id_rol.nombre
+                        messages.success(request, f'Bienvenido, {empleado.nombre}!')
+                        return redirect('ferreteria:index')
+                    else:
+                        messages.error(request, 'Usuario o contraseña incorrectos.')
+                        
+            except Empleado.DoesNotExist:
+                messages.error(request, 'Usuario o contraseña incorrectos.')
+    else:
+        form = LoginUniversalForm()
+    
+    return render(request, 'ferreteria/auth/login_universal.html', {'form': form})
+
+def cliente_register(request):
+    if request.method == 'POST':
+        form = ClienteRegisterForm(request.POST)
+        if form.is_valid():
+            cliente = form.save(commit=False)
+            cliente.contraseña = make_password(form.cleaned_data['contraseña'])
+            cliente.save()
+            
+            request.session['cliente_id'] = cliente.id
+            request.session['cliente_nombre'] = f"{cliente.nombre} {cliente.apellido}"
+            messages.success(request, f'¡Cuenta creada exitosamente! Bienvenido, {cliente.nombre}!')
+            return redirect('ferreteria:index')
+    else:
+        form = ClienteRegisterForm()
+    
+    return render(request, 'ferreteria/auth/cliente_register.html', {'form': form})
+
+def logout_view(request):
+    usuario_nombre = request.session.get('cliente_nombre') or request.session.get('empleado_nombre', 'Usuario')
+    request.session.flush()
+    messages.success(request, f'¡Hasta luego, {usuario_nombre}!')
+    return redirect('ferreteria:index')
+
+@cliente_login_required
+def cliente_perfil(request):
+    cliente = request.cliente
+    
+    if request.method == 'POST':
+        form = ClientePerfilForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            request.session['cliente_nombre'] = f"{cliente.nombre} {cliente.apellido}"
+            messages.success(request, 'Perfil actualizado exitosamente.')
+            return redirect('ferreteria:cliente_perfil')
+    else:
+        form = ClientePerfilForm(instance=cliente)
+    
+    return render(request, 'ferreteria/cliente/perfil.html', {'form': form, 'cliente': cliente})
+
+@cliente_login_required
+def cliente_pedidos(request):
+    cliente = request.cliente
+    pedidos = Pedido.objects.filter(id_cliente=cliente).order_by('-fecha')
+    return render(request, 'ferreteria/cliente/pedidos.html', {'pedidos': pedidos})
+
+@cliente_login_required
+def cliente_pedido_detail(request, pedido_id):
+    cliente = request.cliente
+    pedido = get_object_or_404(Pedido, id=pedido_id, id_cliente=cliente)
+    detalles = PedidoDetalle.objects.filter(id_pedido=pedido)
+    
+    context = {
+        'pedido': pedido,
+        'detalles': detalles,
+    }
+    return render(request, 'ferreteria/cliente/pedido_detail.html', context)
 
 @login_required
 def pedido_list(request):
@@ -268,7 +440,7 @@ def cancelar_pedido(request, pk):
             empleado = Empleado.objects.get(id=empleado_id, activo=True)
         except Empleado.DoesNotExist:
             messages.error(request, 'Error de sesión. Inicia sesión nuevamente.')
-            return redirect('ferreteria:login')
+            return redirect('ferreteria:login_universal')
         
         with transaction.atomic():
             detalles = PedidoDetalle.objects.filter(id_pedido=pedido)
@@ -469,7 +641,9 @@ def cliente_create(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST)
         if form.is_valid():
-            form.save()
+            cliente = form.save(commit=False)
+            cliente.contraseña = make_password(cliente.contraseña)
+            cliente.save()
             messages.success(request, 'Cliente creado exitosamente.')
             return redirect('ferreteria:cliente_list')
     else:
@@ -482,7 +656,10 @@ def cliente_update(request, pk):
     if request.method == 'POST':
         form = ClienteForm(request.POST, instance=cliente)
         if form.is_valid():
-            form.save()
+            cliente = form.save(commit=False)
+            if not cliente.contraseña.startswith('pbkdf2_'):
+                cliente.contraseña = make_password(cliente.contraseña)
+            cliente.save()
             messages.success(request, 'Cliente actualizado exitosamente.')
             return redirect('ferreteria:cliente_list')
     else:
@@ -615,72 +792,9 @@ def articulo_delete(request, pk):
         return redirect('ferreteria:articulo_list')
     return render(request, 'ferreteria/crud/articulo_list.html', {'articulos': Articulo.objects.all()})
 
-class LoginForm(forms.Form):
-    usuario = forms.CharField(
-        max_length=50,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Usuario',
-            'autofocus': True
-        }),
-        label='Usuario'
-    )
-    
-    contraseña = forms.CharField(
-        max_length=255,
-        widget=forms.PasswordInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Contraseña'
-        }),
-        label='Contraseña'
-    )
-
-def login_view(request):
-    if request.session.get('empleado_id'):
-        return redirect('ferreteria:index')
-    
-    if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            usuario = form.cleaned_data['usuario']
-            contraseña = form.cleaned_data['contraseña']
-            
-            try:
-                empleado = Empleado.objects.get(usuario=usuario, activo=True)
-                
-                if not empleado.contraseña.startswith('pbkdf2_'):
-                    if empleado.contraseña == contraseña:
-                        empleado.contraseña = make_password(contraseña)
-                        empleado.save()
-                        request.session['empleado_id'] = empleado.id
-                        request.session['empleado_nombre'] = f"{empleado.nombre} {empleado.apellido}"
-                        request.session['empleado_rol'] = empleado.id_rol.nombre
-                        messages.success(request, f'Bienvenido, {empleado.nombre}!')
-                        return redirect('ferreteria:index')
-                    else:
-                        messages.error(request, 'Usuario o contraseña incorrectos.')
-                else:
-                    if check_password(contraseña, empleado.contraseña):
-                        request.session['empleado_id'] = empleado.id
-                        request.session['empleado_nombre'] = f"{empleado.nombre} {empleado.apellido}"
-                        request.session['empleado_rol'] = empleado.id_rol.nombre
-                        messages.success(request, f'Bienvenido, {empleado.nombre}!')
-                        return redirect('ferreteria:index')
-                    else:
-                        messages.error(request, 'Usuario o contraseña incorrectos.')
-                        
-            except Empleado.DoesNotExist:
-                messages.error(request, 'Usuario o contraseña incorrectos.')
-    else:
-        form = LoginForm()
-    
-    return render(request, 'ferreteria/auth/login.html', {'form': form})
-
-def logout_view(request):
-    empleado_nombre = request.session.get('empleado_nombre', 'Usuario')
-    request.session.flush()
-    messages.success(request, f'Hasta luego, {empleado_nombre}!')
-    return redirect('ferreteria:login')
+def login(request):
+    """Vista de login solo para empleados (compatible con sistema anterior)"""
+    return login_universal(request)
 
 @login_required
 def perfil_view(request):

@@ -33,6 +33,8 @@ class Cliente(models.Model):
     telefono = models.CharField(max_length=10)
     email = models.EmailField(max_length=100, unique=True, blank=True, null=True)
     direccion = models.CharField(max_length=255)
+    usuario = models.CharField(max_length=50, unique=True)
+    contraseña = models.CharField(max_length=255)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     activo = models.BooleanField(default=True)
     
@@ -80,16 +82,39 @@ class Carrito(models.Model):
         ('cancelado', 'Cancelado'),
     ]
     
-    id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True, blank=True)
+    id_empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='activo')
     
     def __str__(self):
-        return f"Carrito {self.id} - {self.id_cliente}"
+        if self.id_cliente:
+            return f"Carrito {self.id} - {self.id_cliente}"
+        elif self.id_empleado:
+            return f"Carrito {self.id} - {self.id_empleado} (Empleado)"
+        return f"Carrito {self.id}"
     
     def get_total(self):
         total = sum(item.subtotal() for item in self.carritoitem_set.all())
         return total
+    
+    def get_owner_name(self):
+        if self.id_cliente:
+            return f"{self.id_cliente.nombre} {self.id_cliente.apellido}"
+        elif self.id_empleado:
+            return f"{self.id_empleado.nombre} {self.id_empleado.apellido} (Empleado)"
+        return "Usuario Desconocido"
+    
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(id_cliente__isnull=False, id_empleado__isnull=True) |
+                    models.Q(id_cliente__isnull=True, id_empleado__isnull=False)
+                ),
+                name='carrito_owner_check'
+            )
+        ]
 
 class CarritoItem(models.Model):
     id_carrito = models.ForeignKey(Carrito, on_delete=models.CASCADE)
@@ -101,6 +126,9 @@ class CarritoItem(models.Model):
     
     def subtotal(self):
         return self.cantidad * self.id_articulo.precio
+    
+    def get_subtotal(self):
+        return self.subtotal()
 
 class Pedido(models.Model):
     ESTADO_CHOICES = [
@@ -109,8 +137,9 @@ class Pedido(models.Model):
         ('cancelado', 'Cancelado'),
     ]
     
-    id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-    id_empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
+    id_cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True, blank=True)
+    id_empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, related_name='pedidos_procesados')
+    id_comprador_empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE, null=True, blank=True, related_name='pedidos_comprados')
     fecha = models.DateTimeField(auto_now_add=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='pendiente')
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -118,7 +147,18 @@ class Pedido(models.Model):
     direccion_envio = models.CharField(max_length=255, blank=True, null=True)
     
     def __str__(self):
-        return f"Pedido #{self.id} - {self.id_cliente}"
+        if self.id_cliente:
+            return f"Pedido #{self.id} - {self.id_cliente}"
+        elif self.id_comprador_empleado:
+            return f"Pedido #{self.id} - {self.id_comprador_empleado} (Empleado)"
+        return f"Pedido #{self.id}"
+    
+    def get_cliente_name(self):
+        if self.id_cliente:
+            return f"{self.id_cliente.nombre} {self.id_cliente.apellido}"
+        elif self.id_comprador_empleado:
+            return f"{self.id_comprador_empleado.nombre} {self.id_comprador_empleado.apellido} (Empleado)"
+        return "Cliente Desconocido"
 
 class PedidoDetalle(models.Model):
     id_pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
@@ -128,6 +168,9 @@ class PedidoDetalle(models.Model):
     
     def subtotal(self):
         return self.cantidad * self.precio_unitario
+    
+    def get_subtotal(self):
+        return self.subtotal()
 
 class MovimientoInventario(models.Model):
     TIPO_CHOICES = [
@@ -141,6 +184,9 @@ class MovimientoInventario(models.Model):
     cantidad = models.IntegerField(validators=[MinValueValidator(1)])
     fecha = models.DateTimeField(auto_now_add=True)
     descripcion = models.CharField(max_length=255, blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.tipo.title()} - {self.id_articulo.nombre} ({self.cantidad})"
 
 class Pago(models.Model):
     id_pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
@@ -148,3 +194,6 @@ class Pago(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
     monto = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
     metodo_pago = models.CharField(max_length=50, blank=True, null=True)
+    
+    def __str__(self):
+        return f"Pago #{self.id} - Pedido #{self.id_pedido.id}"

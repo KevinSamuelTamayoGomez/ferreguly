@@ -1,6 +1,85 @@
 from django import forms
 from .models import *
 
+# ===============================================
+# FORMULARIOS DE AUTENTICACIÓN (SISTEMA DUAL)
+# ===============================================
+
+class LoginUniversalForm(forms.Form):
+    usuario = forms.CharField(
+        max_length=50,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Usuario',
+            'autofocus': True
+        }),
+        label='Usuario'
+    )
+    
+    contraseña = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Contraseña'
+        }),
+        label='Contraseña'
+    )
+
+class ClienteRegisterForm(forms.ModelForm):
+    contraseña = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Contraseña'
+        }),
+        label='Contraseña'
+    )
+    
+    confirmar_contraseña = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirmar contraseña'
+        }),
+        label='Confirmar Contraseña'
+    )
+    
+    class Meta:
+        model = Cliente
+        fields = ['nombre', 'apellido', 'telefono', 'email', 'direccion', 'usuario']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+            'usuario': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        contraseña = cleaned_data.get('contraseña')
+        confirmar_contraseña = cleaned_data.get('confirmar_contraseña')
+        
+        if contraseña and confirmar_contraseña:
+            if contraseña != confirmar_contraseña:
+                raise forms.ValidationError('Las contraseñas no coinciden.')
+        
+        return cleaned_data
+
+class ClientePerfilForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = ['nombre', 'apellido', 'telefono', 'email', 'direccion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+# ===============================================
+# FORMULARIOS CRUD BÁSICOS
+# ===============================================
+
 class RolForm(forms.ModelForm):
     class Meta:
         model = Rol
@@ -29,13 +108,15 @@ class EmpleadoForm(forms.ModelForm):
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['nombre', 'apellido', 'telefono', 'email', 'direccion', 'activo']
+        fields = ['nombre', 'apellido', 'telefono', 'email', 'direccion', 'usuario', 'contraseña', 'activo']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'apellido': forms.TextInput(attrs={'class': 'form-control'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+            'usuario': forms.TextInput(attrs={'class': 'form-control'}),
+            'contraseña': forms.TextInput(attrs={'class': 'form-control'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
@@ -75,29 +156,34 @@ class ArticuloForm(forms.ModelForm):
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
-# Formularios para el carrito
+# ===============================================
+# FORMULARIOS DEL CARRITO (ACTUALIZADOS)
+# ===============================================
+
 class AgregarCarritoForm(forms.Form):
     cantidad = forms.IntegerField(
-        min_value=1, 
-        initial=1, 
+        min_value=1,
         widget=forms.NumberInput(attrs={
-            'class': 'form-control', 
-            'min': '1',
-            'style': 'width: 80px; display: inline-block;'
-        })
+            'class': 'form-control',
+            'value': 1,
+            'min': 1
+        }),
+        label='Cantidad'
     )
 
 class ActualizarCarritoForm(forms.Form):
     cantidad = forms.IntegerField(
-        min_value=1, 
+        min_value=1,
         widget=forms.NumberInput(attrs={
-            'class': 'form-control', 
-            'min': '1',
-            'style': 'width: 80px;'
-        })
+            'class': 'form-control',
+            'min': 1
+        }),
+        label='Cantidad'
     )
 
-    # Agregar estos formularios al final de tu forms.py
+# ===============================================
+# FORMULARIOS DE PEDIDOS
+# ===============================================
 
 class MetodoPagoForm(forms.Form):
     METODOS_PAGO = [
@@ -122,7 +208,9 @@ class MetodoPagoForm(forms.Form):
         help_text='Déjalo vacío para usar la dirección registrada'
     )
 
-    # Agregar al final de tu forms.py
+# ===============================================
+# FORMULARIOS DE MOVIMIENTOS DE INVENTARIO
+# ===============================================
 
 class MovimientoInventarioForm(forms.ModelForm):
     class Meta:

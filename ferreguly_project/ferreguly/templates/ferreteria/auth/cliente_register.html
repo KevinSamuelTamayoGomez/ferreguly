@@ -1,0 +1,166 @@
+{% extends 'ferreteria/base.html' %}
+
+{% block title %}Registro de Cliente - Ferreguly{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header text-center bg-success text-white">
+                <h4><i class="bi bi-person-plus"></i> Registro de Cliente</h4>
+                <p class="mb-0">Crea tu cuenta para comprar en Ferreguly</p>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.nombre.id_for_label }}" class="form-label">
+                                    <i class="bi bi-person"></i> {{ form.nombre.label }} *
+                                </label>
+                                {{ form.nombre }}
+                                {% if form.nombre.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.nombre.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.apellido.id_for_label }}" class="form-label">
+                                    <i class="bi bi-person"></i> {{ form.apellido.label }} *
+                                </label>
+                                {{ form.apellido }}
+                                {% if form.apellido.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.apellido.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.telefono.id_for_label }}" class="form-label">
+                                    <i class="bi bi-telephone"></i> {{ form.telefono.label }} *
+                                </label>
+                                {{ form.telefono }}
+                                {% if form.telefono.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.telefono.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    <i class="bi bi-envelope"></i> {{ form.email.label }}
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.email.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.direccion.id_for_label }}" class="form-label">
+                            <i class="bi bi-geo-alt"></i> {{ form.direccion.label }} *
+                        </label>
+                        {{ form.direccion }}
+                        {% if form.direccion.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.direccion.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.usuario.id_for_label }}" class="form-label">
+                                    <i class="bi bi-person-badge"></i> {{ form.usuario.label }} *
+                                </label>
+                                {{ form.usuario }}
+                                {% if form.usuario.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.usuario.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <small>Será tu nombre de usuario para iniciar sesión</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.contraseña.id_for_label }}" class="form-label">
+                                    <i class="bi bi-lock"></i> {{ form.contraseña.label }} *
+                                </label>
+                                {{ form.contraseña }}
+                                {% if form.contraseña.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.contraseña.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.confirmar_contraseña.id_for_label }}" class="form-label">
+                                    <i class="bi bi-lock-fill"></i> {{ form.confirmar_contraseña.label }} *
+                                </label>
+                                {{ form.confirmar_contraseña }}
+                                {% if form.confirmar_contraseña.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.confirmar_contraseña.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Errores generales del formulario -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Información</h6>
+                        <ul class="mb-0 small">
+                            <li>Todos los campos marcados con <strong>*</strong> son obligatorios</li>
+                            <li>Tu cuenta se activará inmediatamente después del registro</li>
+                            <li>Podrás comprar productos y ver tu historial de pedidos</li>
+                            <li>Tus datos personales están protegidos</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'ferreteria:login_universal' %}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> Volver al Login
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-person-plus"></i> Crear Cuenta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
