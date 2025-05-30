@@ -53,7 +53,7 @@ Sistema web completo para gestión de ferretería desarrollado con Django. Inclu
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone https://github.com/tu-usuario/ferreguly.git
+git clone https://github.com/KevinSamuelTamayoGomez/ferreguly.git
 cd ferreguly
 ```
 
